@@ -6,16 +6,16 @@ Created on 01/01/2018
 @author: Maurizio Ferrari Dacrema
 """
 
-import os, traceback
-from Data_manager.Dataset import Dataset
+import os
+import traceback
 
+from Data_manager.Dataset import Dataset
 
 #################################################################################################################
 #############################
 #############################               DATA READER
 #############################
 #################################################################################################################
-
 
 
 class DataReader(object):
@@ -34,6 +34,7 @@ class DataReader(object):
         - user_original_ID_to_index
 
     """
+
     __DATASET_SPLIT_SUBFOLDER = "Data_manager_split_datasets/"
     __DATASET_OFFLINE_SUBFOLDER = "Data_manager_offline_datasets/"
     DATASET_SPLIT_ROOT_FOLDER = None
@@ -54,11 +55,13 @@ class DataReader(object):
 
     _DATA_READER_NAME = "DataReader"
 
-    def __init__(self, reload_from_original_data = False):
+    def __init__(self, reload_from_original_data=False):
         super(DataReader, self).__init__()
 
-        self.DATASET_SPLIT_ROOT_FOLDER = os.path.join(os.path.dirname(__file__), '..', self.__DATASET_SPLIT_SUBFOLDER)
-        self.DATASET_OFFLINE_ROOT_FOLDER = os.path.join(os.path.dirname(__file__), '..', self.__DATASET_OFFLINE_SUBFOLDER)
+        self.DATASET_SPLIT_ROOT_FOLDER = os.path.join(os.path.dirname(__file__), "..", self.__DATASET_SPLIT_SUBFOLDER)
+        self.DATASET_OFFLINE_ROOT_FOLDER = os.path.join(
+            os.path.dirname(__file__), "..", self.__DATASET_OFFLINE_SUBFOLDER
+        )
 
         self.reload_from_original_data = reload_from_original_data
         if self.reload_from_original_data:
@@ -70,17 +73,18 @@ class DataReader(object):
     def _get_dataset_name(self):
         return self._get_dataset_name_root().replace("/", "_")[:-1]
 
-
     def get_loaded_ICM_names(self):
         return self.AVAILABLE_ICM.copy()
-
 
     def get_loaded_UCM_names(self):
         return self.AVAILABLE_UCM.copy()
 
     def _load_from_original_file(self):
-        raise NotImplementedError("{}: _load_from_original_file was not implemented for the required dataset. Impossible to load the data".format(self._DATA_READER_NAME))
-
+        raise NotImplementedError(
+            "{}: _load_from_original_file was not implemented for the required dataset. Impossible to load the data".format(
+                self._DATA_READER_NAME
+            )
+        )
 
     def _get_dataset_name_root(self):
         """
@@ -88,10 +92,11 @@ class DataReader(object):
 
         :return: Dataset_name/
         """
-        raise NotImplementedError("{}:_get_dataset_name_root was not implemented for the required dataset. Impossible to load the data".format(self._DATA_READER_NAME))
-
-
-
+        raise NotImplementedError(
+            "{}:_get_dataset_name_root was not implemented for the required dataset. Impossible to load the data".format(
+                self._DATA_READER_NAME
+            )
+        )
 
     def _get_dataset_name_data_subfolder(self):
         """
@@ -103,8 +108,7 @@ class DataReader(object):
         """
         return self.DATASET_SUBFOLDER_ORIGINAL
 
-
-    def load_data(self, save_folder_path = None):
+    def load_data(self, save_folder_path=None):
         """
         :param save_folder_path:    path in which to save the loaded dataset
                                     None    use default "dataset_name/original/"
@@ -114,8 +118,9 @@ class DataReader(object):
 
         # Use default e.g., "dataset_name/original/"
         if save_folder_path is None:
-            save_folder_path = self.DATASET_SPLIT_ROOT_FOLDER + self._get_dataset_name_root() + self._get_dataset_name_data_subfolder()
-
+            save_folder_path = (
+                self.DATASET_SPLIT_ROOT_FOLDER + self._get_dataset_name_root() + self._get_dataset_name_data_subfolder()
+            )
 
         # If save_folder_path contains any path try to load a previously built split from it
         if save_folder_path is not False and not self.reload_from_original_data:
@@ -141,7 +146,6 @@ class DataReader(object):
                 traceback.print_exc()
                 raise Exception("{}: Exception while reading split".format(self._get_dataset_name()))
 
-
         self._print("Loading original data")
         loaded_dataset = self._load_from_original_file()
 
@@ -165,4 +169,3 @@ class DataReader(object):
 
         loaded_dataset.print_statistics()
         return loaded_dataset
-

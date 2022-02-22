@@ -6,12 +6,19 @@ Created on 27/04/2019
 @author: Maurizio Ferrari Dacrema
 """
 
-import os, json, zipfile, shutil, platform, warnings
+import json
+import os
+import platform
+import shutil
+import unittest
+import warnings
+import zipfile
 
+import numpy as np
+import pandas as pd
 import scipy.sparse as sps
 from pandas import DataFrame
-import pandas as pd
-import numpy as np
+from scipy.sparse import random
 
 
 def json_not_serializable_handler(o):
@@ -31,9 +38,8 @@ def json_not_serializable_handler(o):
     raise TypeError("json_not_serializable_handler: object '{}' is not serializable.".format(type(o)))
 
 
-
 class DataIO(object):
-    """ DataIO"""
+    """DataIO"""
 
     _DEFAULT_TEMP_FOLDER = ".temp"
 
@@ -51,10 +57,8 @@ class DataIO(object):
         # if self._is_windows:
         #     self.folder_path = "\\\\?\\" + self.folder_path
 
-
     def _print(self, message):
         print("{}: {}".format("DataIO", message))
-
 
     def _get_temp_folder(self, file_name):
         """
@@ -67,15 +71,16 @@ class DataIO(object):
         current_temp_folder = "{}{}_{}_{}/".format(self.folder_path, self._DEFAULT_TEMP_FOLDER, os.getpid(), file_name)
 
         if os.path.exists(current_temp_folder):
-            self._print("Folder {} already exists, could be the result of a previous failed save attempt or multiple saver are active in parallel. " \
-            "Folder will be removed.".format(current_temp_folder))
+            self._print(
+                "Folder {} already exists, could be the result of a previous failed save attempt or multiple saver are active in parallel. "
+                "Folder will be removed.".format(current_temp_folder)
+            )
 
             shutil.rmtree(current_temp_folder, ignore_errors=True)
 
         os.makedirs(current_temp_folder)
 
         return current_temp_folder
-
 
     def _check_dict_key_type(self, dict_to_save):
         """
@@ -90,16 +95,18 @@ class DataIO(object):
             return dict_to_save
 
         if not self._key_string_alert_done:
-            self._print("Json dumps supports only 'str' as dictionary keys. Transforming keys to string, note that this will alter the mapper content.")
+            self._print(
+                "Json dumps supports only 'str' as dictionary keys. Transforming keys to string, note that this will alter the mapper content."
+            )
             self._key_string_alert_done = True
 
-        dict_to_save_key_str = {str(key):val for (key,val) in dict_to_save.items()}
+        dict_to_save_key_str = {str(key): val for (key, val) in dict_to_save.items()}
 
-        assert all(dict_to_save_key_str[str(key)] == val for (key,val) in dict_to_save.items()), \
-            "DataIO: Transforming dictionary keys into strings altered its content. Duplicate keys may have been produced."
+        assert all(
+            dict_to_save_key_str[str(key)] == val for (key, val) in dict_to_save.items()
+        ), "DataIO: Transforming dictionary keys into strings altered its content. Duplicate keys may have been produced."
 
         return dict_to_save_key_str
-
 
     def save_data(self, file_name, data_dict_to_save):
 
@@ -109,7 +116,6 @@ class DataIO(object):
 
         if file_name[-4:] != ".zip":
             file_name += ".zip"
-
 
         current_temp_folder = self._get_temp_folder(file_name)
 
@@ -131,8 +137,9 @@ class DataIO(object):
                     # This is acceptable because it provides the flexibility of using python objects as types (strings, None, etc..)
                     with warnings.catch_warnings():
                         warnings.filterwarnings("ignore")
-                        attrib_data.to_hdf(current_file_path + ".h5", key="DataFrame", mode='w', append = False, format="fixed")
-
+                        attrib_data.to_hdf(
+                            current_file_path + ".h5", key="DataFrame", mode="w", append=False, format="fixed"
+                        )
 
                 elif isinstance(attrib_data, sps.spmatrix):
                     sps.save_npz(current_file_path, attrib_data)
@@ -150,16 +157,14 @@ class DataIO(object):
                     except TypeError:
 
                         if isinstance(attrib_data, dict):
-                            dataIO = DataIO(folder_path = current_temp_folder)
-                            dataIO.save_data(file_name = attrib_name, data_dict_to_save=attrib_data)
+                            dataIO = DataIO(folder_path=current_temp_folder)
+                            dataIO.save_data(file_name=attrib_name, data_dict_to_save=attrib_data)
 
                         else:
                             raise TypeError("Type not recognized for attribute: {}".format(attrib_name))
 
-
-
             # Save list objects
-            if len(data_format)>0:
+            if len(data_format) > 0:
                 attribute_to_save_as_json[".data_format"] = data_format.copy()
 
             for attrib_name, attrib_data in attribute_to_save_as_json.items():
@@ -168,23 +173,29 @@ class DataIO(object):
                 # if self._is_windows and len(current_file_path + ".json") >= self._MAX_PATH_LENGTH_WINDOWS:
                 #     current_file_path = "\\\\?\\" + current_file_path
 
-                absolute_path = current_file_path + ".json" if current_file_path.startswith(os.getcwd()) else os.getcwd() + current_file_path + ".json"
+                absolute_path = (
+                    current_file_path + ".json"
+                    if current_file_path.startswith(os.getcwd())
+                    else os.getcwd() + current_file_path + ".json"
+                )
 
-                assert not self._is_windows or (self._is_windows and len(absolute_path) <= self._MAX_PATH_LENGTH_WINDOWS), \
-                    "DataIO: Path of file exceeds {} characters, which is the maximum allowed under standard paths for Windows.".format(self._MAX_PATH_LENGTH_WINDOWS)
+                assert not self._is_windows or (
+                    self._is_windows and len(absolute_path) <= self._MAX_PATH_LENGTH_WINDOWS
+                ), "DataIO: Path of file exceeds {} characters, which is the maximum allowed under standard paths for Windows.".format(
+                    self._MAX_PATH_LENGTH_WINDOWS
+                )
 
-
-                with open(current_file_path + ".json", 'w') as outfile:
+                with open(current_file_path + ".json", "w") as outfile:
                     if isinstance(attrib_data, dict):
                         attrib_data = self._check_dict_key_type(attrib_data)
 
                     json.dump(attrib_data, outfile, default=json_not_serializable_handler)
 
-
-
-            with zipfile.ZipFile(self.folder_path + file_name + ".temp", 'w', compression=zipfile.ZIP_DEFLATED) as myzip:
+            with zipfile.ZipFile(
+                self.folder_path + file_name + ".temp", "w", compression=zipfile.ZIP_DEFLATED
+            ) as myzip:
                 for file_to_compress in os.listdir(current_temp_folder):
-                    myzip.write(current_temp_folder + file_to_compress, arcname = file_to_compress)
+                    myzip.write(current_temp_folder + file_to_compress, arcname=file_to_compress)
 
             # Replace file only after the new archive has been successfully created
             # Prevents accidental deletion of previous versions of the file if the current write fails
@@ -195,11 +206,7 @@ class DataIO(object):
             shutil.rmtree(current_temp_folder, ignore_errors=True)
             raise exec
 
-
         shutil.rmtree(current_temp_folder, ignore_errors=True)
-
-
-
 
     def load_data(self, file_name):
 
@@ -215,12 +222,11 @@ class DataIO(object):
         try:
 
             try:
-                data_format = dataFile.extract(".data_format.json", path = current_temp_folder)
+                data_format = dataFile.extract(".data_format.json", path=current_temp_folder)
                 with open(data_format, "r") as json_file:
                     data_format = json.load(json_file)
             except KeyError:
                 data_format = {}
-
 
             data_dict_loaded = {}
 
@@ -230,16 +236,16 @@ class DataIO(object):
                 if file_name.startswith("."):
                     continue
 
-                decompressed_file_path = dataFile.extract(file_name, path = current_temp_folder)
+                decompressed_file_path = dataFile.extract(file_name, path=current_temp_folder)
                 file_extension = file_name.split(".")[-1]
-                attrib_name = file_name[:-len(file_extension)-1]
+                attrib_name = file_name[: -len(file_extension) - 1]
 
                 if file_extension == "csv":
                     # Compatibility with previous version
                     attrib_data = pd.read_csv(decompressed_file_path, index_col=False)
 
                 elif file_extension == "h5":
-                    attrib_data = pd.read_hdf(decompressed_file_path, key=None, mode='r')
+                    attrib_data = pd.read_hdf(decompressed_file_path, key=None, mode="r")
 
                 elif file_extension == "npz":
                     attrib_data = sps.load_npz(decompressed_file_path)
@@ -249,18 +255,21 @@ class DataIO(object):
                     attrib_data = np.load(decompressed_file_path, allow_pickle=False)
 
                 elif file_extension == "zip":
-                    dataIO = DataIO(folder_path = current_temp_folder)
-                    attrib_data = dataIO.load_data(file_name = file_name)
+                    dataIO = DataIO(folder_path=current_temp_folder)
+                    attrib_data = dataIO.load_data(file_name=file_name)
 
                 elif file_extension == "json":
                     with open(decompressed_file_path, "r") as json_file:
                         attrib_data = json.load(json_file)
 
                 else:
-                    raise Exception("Attribute type not recognized for: '{}' of class: '{}'".format(decompressed_file_path, file_extension))
+                    raise Exception(
+                        "Attribute type not recognized for: '{}' of class: '{}'".format(
+                            decompressed_file_path, file_extension
+                        )
+                    )
 
                 data_dict_loaded[attrib_name] = attrib_data
-
 
         except Exception as exec:
 
@@ -269,26 +278,16 @@ class DataIO(object):
 
         shutil.rmtree(current_temp_folder, ignore_errors=True)
 
-
         return data_dict_loaded
 
 
-
-
-
-
-from scipy.sparse import random
-import unittest
-
-
 class MyTestCase(unittest.TestCase):
-
     def test_save_and_load(self):
 
         arrays = [
-           np.array(["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"]),
-           np.array(["one", "two", "one", "two", "one", "two", "one", "two"]),
-           ]
+            np.array(["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"]),
+            np.array(["one", "two", "one", "two", "one", "two", "one", "two"]),
+        ]
 
         multiindex_df = pd.DataFrame(np.random.randn(8, 4), index=arrays)
 
@@ -297,19 +296,18 @@ class MyTestCase(unittest.TestCase):
         dataframe = pd.DataFrame(sps_random.copy().toarray())
         dataframe["I am INT"] = np.arange(0, len(dataframe))
 
-        dataframe.loc[1,"I am a mess"] = "A"
-        dataframe.loc[2,"I am a mess"] = None
+        dataframe.loc[1, "I am a mess"] = "A"
+        dataframe.loc[2, "I am a mess"] = None
 
         original_data_dict = {
-                        "sps_random": sps_random.copy(),
-                        "result_folder_path": "this is just a string",
-                        "cutoff_list_validation": [5, 10, 20],
-                        "dataframe": dataframe,
-                        "multiindex_df_row": multiindex_df,
-                        "multiindex_df_col": multiindex_df.transpose(),
-                        "nested_dict": {"A": "a", "B": sps_random.copy()}
-                        }
-
+            "sps_random": sps_random.copy(),
+            "result_folder_path": "this is just a string",
+            "cutoff_list_validation": [5, 10, 20],
+            "dataframe": dataframe,
+            "multiindex_df_row": multiindex_df,
+            "multiindex_df_col": multiindex_df.transpose(),
+            "nested_dict": {"A": "a", "B": sps_random.copy()},
+        }
 
         dataIO = DataIO("_test_DataIO/")
         dataIO.save_data(file_name="test_DataIO", data_dict_to_save=original_data_dict)
@@ -320,28 +318,49 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(original_data_dict.keys(), loaded_data_dict.keys())
 
         # Check data type of each column
-        self.assertTrue((original_data_dict['dataframe'].dtypes == loaded_data_dict['dataframe'].dtypes).all()), "Datatypes are different"
+        self.assertTrue(
+            (original_data_dict["dataframe"].dtypes == loaded_data_dict["dataframe"].dtypes).all()
+        ), "Datatypes are different"
 
         # Check column with different data types: float, int, string, None
-        self.assertTrue(type(original_data_dict['dataframe'].loc[0,"I am a mess"]) == type(loaded_data_dict['dataframe'].loc[0,"I am a mess"])), "Datatypes are different"
-        self.assertTrue(type(original_data_dict['dataframe'].loc[1,"I am a mess"]) == type(loaded_data_dict['dataframe'].loc[1,"I am a mess"])), "Datatypes are different"
-        self.assertTrue(type(original_data_dict['dataframe'].loc[2,"I am a mess"]) == type(loaded_data_dict['dataframe'].loc[2,"I am a mess"])), "Datatypes are different"
-        self.assertTrue(type(original_data_dict['dataframe'].loc[3,"I am a mess"]) == type(loaded_data_dict['dataframe'].loc[3,"I am a mess"])), "Datatypes are different"
+        self.assertTrue(
+            isinstance(original_data_dict["dataframe"].loc[0, "I am a mess"])
+            == isinstance(loaded_data_dict["dataframe"].loc[0, "I am a mess"])
+        ), "Datatypes are different"
+        self.assertTrue(
+            isinstance(original_data_dict["dataframe"].loc[1, "I am a mess"])
+            == isinstance(loaded_data_dict["dataframe"].loc[1, "I am a mess"])
+        ), "Datatypes are different"
+        self.assertTrue(
+            isinstance(original_data_dict["dataframe"].loc[2, "I am a mess"])
+            == isinstance(loaded_data_dict["dataframe"].loc[2, "I am a mess"])
+        ), "Datatypes are different"
+        self.assertTrue(
+            isinstance(original_data_dict["dataframe"].loc[3, "I am a mess"])
+            == isinstance(loaded_data_dict["dataframe"].loc[3, "I am a mess"])
+        ), "Datatypes are different"
 
         # Check various data types: scipy sparse, string, list...
-        self.assertTrue(np.array_equal(original_data_dict['sps_random'].toarray(), loaded_data_dict['sps_random'].toarray()))
-        self.assertTrue(original_data_dict['result_folder_path'] == loaded_data_dict['result_folder_path'])
-        self.assertTrue(original_data_dict['cutoff_list_validation'] == loaded_data_dict['cutoff_list_validation'])
+        self.assertTrue(
+            np.array_equal(original_data_dict["sps_random"].toarray(), loaded_data_dict["sps_random"].toarray())
+        )
+        self.assertTrue(original_data_dict["result_folder_path"] == loaded_data_dict["result_folder_path"])
+        self.assertTrue(original_data_dict["cutoff_list_validation"] == loaded_data_dict["cutoff_list_validation"])
 
-        self.assertTrue(original_data_dict['dataframe'].equals(loaded_data_dict['dataframe']))
-        self.assertTrue(original_data_dict['multiindex_df_row'].equals(loaded_data_dict['multiindex_df_row']))
-        self.assertTrue(original_data_dict['multiindex_df_col'].equals(loaded_data_dict['multiindex_df_col']))
+        self.assertTrue(original_data_dict["dataframe"].equals(loaded_data_dict["dataframe"]))
+        self.assertTrue(original_data_dict["multiindex_df_row"].equals(loaded_data_dict["multiindex_df_row"]))
+        self.assertTrue(original_data_dict["multiindex_df_col"].equals(loaded_data_dict["multiindex_df_col"]))
 
         # Check content of nested dictionary
-        self.assertEqual(original_data_dict['nested_dict'].keys(), loaded_data_dict['nested_dict'].keys())
-        self.assertTrue(original_data_dict['nested_dict']["A"] == loaded_data_dict['nested_dict']["A"])
-        self.assertTrue(np.array_equal(original_data_dict['nested_dict']["B"].toarray(), loaded_data_dict['nested_dict']["B"].toarray()))
+        self.assertEqual(original_data_dict["nested_dict"].keys(), loaded_data_dict["nested_dict"].keys())
+        self.assertTrue(original_data_dict["nested_dict"]["A"] == loaded_data_dict["nested_dict"]["A"])
+        self.assertTrue(
+            np.array_equal(
+                original_data_dict["nested_dict"]["B"].toarray(), loaded_data_dict["nested_dict"]["B"].toarray()
+            )
+        )
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
 
     unittest.main()

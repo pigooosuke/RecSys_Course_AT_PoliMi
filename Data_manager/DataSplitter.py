@@ -6,8 +6,11 @@ Created on 30/11/18
 @author: Maurizio Ferrari Dacrema
 """
 
-import traceback, os
+import os
+import traceback
+
 from Data_manager.DataReader import DataReader
+
 
 class DataSplitter(object):
     """
@@ -36,13 +39,11 @@ class DataSplitter(object):
     __DATASET_SPLIT_SUBFOLDER = "Data_manager_split_datasets/"
     DATASET_SPLIT_ROOT_FOLDER = None
 
-
     ICM_SPLIT_SUFFIX = [""]
 
     DATA_SPLITTER_NAME = "DataSplitter"
 
-
-    def __init__(self, dataReader_object:DataReader, forbid_new_split = False, force_new_split = False):
+    def __init__(self, dataReader_object: DataReader, forbid_new_split=False, force_new_split=False):
         """
 
         :param dataReader_object:
@@ -52,12 +53,11 @@ class DataSplitter(object):
         """
         super(DataSplitter, self).__init__()
 
-        self.DATASET_SPLIT_ROOT_FOLDER = os.path.join(os.path.dirname(__file__), '..', self.__DATASET_SPLIT_SUBFOLDER)
+        self.DATASET_SPLIT_ROOT_FOLDER = os.path.join(os.path.dirname(__file__), "..", self.__DATASET_SPLIT_SUBFOLDER)
 
         self.dataReader_object = dataReader_object
         self.forbid_new_split = forbid_new_split
         self.force_new_split = force_new_split
-
 
     def get_dataReader_object(self):
         return self.dataReader_object
@@ -109,7 +109,6 @@ class DataSplitter(object):
     def _print(self, message):
         print("{}: {}".format(self.DATA_SPLITTER_NAME, message))
 
-
     def _get_default_save_path(self):
         """
         Returns the default path in which to save the splitted data
@@ -117,16 +116,16 @@ class DataSplitter(object):
         :return:
         """
 
-        save_folder_path = self.DATASET_SPLIT_ROOT_FOLDER + \
-                           self.get_dataReader_object()._get_dataset_name_root() + \
-                           self._get_split_subfolder_name() + \
-                           self.get_dataReader_object()._get_dataset_name_data_subfolder()
+        save_folder_path = (
+            self.DATASET_SPLIT_ROOT_FOLDER
+            + self.get_dataReader_object()._get_dataset_name_root()
+            + self._get_split_subfolder_name()
+            + self.get_dataReader_object()._get_dataset_name_data_subfolder()
+        )
 
         return save_folder_path
 
-
-
-    def load_data(self, save_folder_path = None):
+    def load_data(self, save_folder_path=None):
         """
 
         :param save_folder_path:    path in which to save the loaded dataset
@@ -138,7 +137,6 @@ class DataSplitter(object):
         # Use default "dataset_name/split_name/original" or "dataset_name/split_name/k-cores"
         if save_folder_path is None:
             save_folder_path = self._get_default_save_path()
-
 
         # If save_folder_path contains any path try to load a previously built split from it
         if save_folder_path is not False and not self.force_new_split:
@@ -155,7 +153,11 @@ class DataSplitter(object):
 
                 # Split not found, either stop or create a new one
                 if self.forbid_new_split:
-                    raise ValueError("{}: Preloaded data not found, but creating a new split is forbidden. Terminating".format(self.DATA_SPLITTER_NAME))
+                    raise ValueError(
+                        "{}: Preloaded data not found, but creating a new split is forbidden. Terminating".format(
+                            self.DATA_SPLITTER_NAME
+                        )
+                    )
 
                 else:
                     self._print("Preloaded data not found, reading from original files...")
@@ -173,7 +175,6 @@ class DataSplitter(object):
 
                     self._print("Preloaded data not found, reading from original files... Done")
 
-
             except Exception:
 
                 self._print("Reading split from {} caused the following exception...".format(save_folder_path))
@@ -188,16 +189,10 @@ class DataSplitter(object):
 
             self._print("Reading from original files...Done")
 
-
-
-
         self.get_statistics_URM()
         self.get_statistics_ICM()
 
         self._print("Done.")
-
-
-
 
     def _load_from_DataReader_ICM_and_mappers(self, loaded_dataset):
 
@@ -209,41 +204,49 @@ class DataSplitter(object):
 
         self.SPLIT_GLOBAL_MAPPER_DICT = loaded_dataset.get_global_mapper_dict()
 
-
-
-
-
     def _get_split_subfolder_name(self):
         """
         :return: Dataset_name/split_name/
         """
-        raise NotImplementedError("{}: _get_split_subfolder_name was not implemented for the required dataset. Impossible to load the data".format(self.DATA_SPLITTER_NAME))
-
-
-
+        raise NotImplementedError(
+            "{}: _get_split_subfolder_name was not implemented for the required dataset. Impossible to load the data".format(
+                self.DATA_SPLITTER_NAME
+            )
+        )
 
     def _split_data_from_original_dataset(self, save_folder_path):
-        raise NotImplementedError("{}: _split_data_from_original_dataset was not implemented for the required dataset. Impossible to load the data".format(self.DATA_SPLITTER_NAME))
-
+        raise NotImplementedError(
+            "{}: _split_data_from_original_dataset was not implemented for the required dataset. Impossible to load the data".format(
+                self.DATA_SPLITTER_NAME
+            )
+        )
 
     def _load_previously_built_split_and_attributes(self, save_folder_path):
         """
         Loads all URM and ICM
         :return:
         """
-        raise NotImplementedError("{}: _load_previously_built_split_and_attributes was not implemented for the required dataset. Impossible to load the data".format(self.DATA_SPLITTER_NAME))
-
+        raise NotImplementedError(
+            "{}: _load_previously_built_split_and_attributes was not implemented for the required dataset. Impossible to load the data".format(
+                self.DATA_SPLITTER_NAME
+            )
+        )
 
     def get_statistics_URM(self):
 
-        raise NotImplementedError("{}: get_statistics_URM was not implemented for the required dataset. Impossible to load the data".format(self.DATA_SPLITTER_NAME))
-
-
+        raise NotImplementedError(
+            "{}: get_statistics_URM was not implemented for the required dataset. Impossible to load the data".format(
+                self.DATA_SPLITTER_NAME
+            )
+        )
 
     def get_statistics_ICM(self):
 
-        raise NotImplementedError("{}: get_statistics_ICM was not implemented for the required dataset. Impossible to load the data".format(self.DATA_SPLITTER_NAME))
-
+        raise NotImplementedError(
+            "{}: get_statistics_ICM was not implemented for the required dataset. Impossible to load the data".format(
+                self.DATA_SPLITTER_NAME
+            )
+        )
 
     #########################################################################################################
     ##########                                                                                     ##########
@@ -251,7 +254,8 @@ class DataSplitter(object):
     ##########                                                                                     ##########
     #########################################################################################################
 
-
     def _verify_data_consistency(self):
 
-        self._print("WARNING WARNING WARNING _verify_data_consistency not implemented for the current DataSplitter, unable to validate current split.")
+        self._print(
+            "WARNING WARNING WARNING _verify_data_consistency not implemented for the current DataSplitter, unable to validate current split."
+        )

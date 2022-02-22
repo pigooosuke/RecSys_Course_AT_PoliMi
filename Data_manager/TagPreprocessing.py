@@ -8,10 +8,11 @@ Created on 09/01/18
 
 
 import re
-from nltk.stem import PorterStemmer
 
 import nltk
-nltk.download('stopwords')
+from nltk.stem import PorterStemmer
+
+nltk.download("stopwords")
 
 
 from nltk.corpus import stopwords
@@ -25,7 +26,7 @@ def tagFilter(originalTag):
 
     processedTag = processedTag.split(" ")
 
-    stopwords_set = set(stopwords.words('english'))
+    stopwords_set = set(stopwords.words("english"))
 
     result = []
 
@@ -35,8 +36,6 @@ def tagFilter(originalTag):
             result.append(tag)
 
     return result
-
-
 
 
 def tagFilterAndStemming(originalTag):
@@ -50,7 +49,7 @@ def tagFilterAndStemming(originalTag):
 
     processedTag = processedTag.split(" ")
 
-    stopwords_set = set(stopwords.words('english'))
+    stopwords_set = set(stopwords.words("english"))
 
     stemmer = PorterStemmer()
 
@@ -60,7 +59,7 @@ def tagFilterAndStemming(originalTag):
 
         tag_stemmed = stemmer.stem(tag)
 
-        if tag_stemmed not in stopwords_set and len(tag_stemmed)>0:
+        if tag_stemmed not in stopwords_set and len(tag_stemmed) > 0:
             result.append(tag_stemmed)
 
     return result

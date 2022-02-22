@@ -5,7 +5,10 @@ Created on 18/02/2019
 
 """
 
-import subprocess, os, shutil
+import os
+import shutil
+import subprocess
+
 import numpy as np
 from tqdm import tqdm
 
@@ -19,8 +22,7 @@ class SVDFeature(BaseRecommender):
     FILE_MODEL_NAME = "svd_feature_train"
     FILE_TEST_NAME = "svd_feature_test"
     FILE_PREDICTION_NAME = "svd_feature_predicted"
-    DEFAULT_TEMP_FILE_FOLDER = './result_experiments/__Temp_SVDFeature/'
-
+    DEFAULT_TEMP_FILE_FOLDER = "./result_experiments/__Temp_SVDFeature/"
 
     def __init__(self, URM_train, ICM=None, UCM=None):
 
@@ -32,33 +34,31 @@ class SVDFeature(BaseRecommender):
         self.n_users, self.n_items = URM_train.shape
         self.normalize = False
 
-
     def __dealloc__(self):
 
         if self.temp_file_folder == self.DEFAULT_TEMP_FILE_FOLDER:
             print("{}: cleaning temporary files".format(self.RECOMMENDER_NAME))
             shutil.rmtree(self.DEFAULT_TEMP_FILE_FOLDER, ignore_errors=True)
 
-
-
     def _compute_item_score(self, user_id_array, items_to_compute=None):
 
         if items_to_compute is None:
             items_to_compute = np.arange(self.n_items)
 
-        item_scores = - np.ones((len(user_id_array), self.URM_train.shape[1]), dtype=np.float32)*np.inf
-
+        item_scores = -np.ones((len(user_id_array), self.URM_train.shape[1]), dtype=np.float32) * np.inf
 
         with open(self.temp_file_folder + self.FILE_TEST_NAME, "w") as fileout:
             for userid in user_id_array.tolist():
                 for itemid in items_to_compute.tolist():
                     print(self._get_feature_format(userid, itemid), file=fileout)
 
-        args = ["svd_feature_infer",
-                "pred=0",
-                "test:input_type=1",
-                "test:data_in={}".format(self.temp_file_folder + self.FILE_TEST_NAME),
-                "name_pred={}".format(self.temp_file_folder + self.FILE_PREDICTION_NAME)]
+        args = [
+            "svd_feature_infer",
+            "pred=0",
+            "test:input_type=1",
+            "test:data_in={}".format(self.temp_file_folder + self.FILE_TEST_NAME),
+            "name_pred={}".format(self.temp_file_folder + self.FILE_PREDICTION_NAME),
+        ]
 
         subprocess.run(args)
 
@@ -70,7 +70,6 @@ class SVDFeature(BaseRecommender):
                     item_scores[userid, itemid] = float(filein.readline())
 
         return item_scores
-
 
     def _get_feature_format(self, userid, itemid):
 
@@ -93,17 +92,14 @@ class SVDFeature(BaseRecommender):
         output += "{:d}:1\t".format(userid)
         if userfeatures is not None:
             for j in range(len(userfeatures.indices)):
-                output += "{:d}:{:.6f}\t".format(userfeatures.indices[j] + self.n_users,
-                                                 userfeatures.data[j])
+                output += "{:d}:{:.6f}\t".format(userfeatures.indices[j] + self.n_users, userfeatures.data[j])
 
         output += "{:d}:1\t".format(itemid)
         if itemfeatures is not None:
             for j in range(len(itemfeatures.indices)):
-                output += "{:d}:{:.6f}\t".format(itemfeatures.indices[j] + self.n_items,
-                                                 itemfeatures.data[j])
+                output += "{:d}:{:.6f}\t".format(itemfeatures.indices[j] + self.n_items, itemfeatures.data[j])
 
         return output
-
 
     def _write_feature_format_file(self):
 
@@ -128,11 +124,17 @@ class SVDFeature(BaseRecommender):
 
                 print(output, file=fileout)
 
-
-    def fit(self, epochs=30, num_factors=32, learning_rate=0.01,
-            user_reg=0.0, item_reg=0.0, user_bias_reg=0.0, item_bias_reg=0.0,
-            temp_file_folder = None):
-
+    def fit(
+        self,
+        epochs=30,
+        num_factors=32,
+        learning_rate=0.01,
+        user_reg=0.0,
+        item_reg=0.0,
+        user_bias_reg=0.0,
+        item_bias_reg=0.0,
+        temp_file_folder=None,
+    ):
 
         if temp_file_folder is None:
             print("{}: Using default Temp folder '{}'".format(self.RECOMMENDER_NAME, self.DEFAULT_TEMP_FILE_FOLDER))
@@ -144,29 +146,30 @@ class SVDFeature(BaseRecommender):
         if not os.path.isdir(self.temp_file_folder):
             os.makedirs(self.temp_file_folder)
 
-
         print("SVDFeature: Writing input file in feature format")
 
         self._write_feature_format_file()
 
         print("SVDFeature: Fit starting")
 
-        args = ["svd_feature",
-                #"active_type=3",
-                "input_type=1",
-                "data_in={}".format(self.temp_file_folder + self.FILE_MODEL_NAME),
-                "model_out_folder={}".format(self.temp_file_folder),
-                "num_item={:d}".format(self.n_item_features),
-                "num_user={:d}".format(self.n_user_features),
-                "num_global=0",
-                "num_factor={:d}".format(num_factors),
-                "base_score={:.2f}".format(self.URM_train.data.mean()),
-                "learning_rate={}".format(learning_rate),
-                "wd_user={}".format(user_reg),
-                "wd_item={}".format(item_reg),
-                "wd_user_bias={}".format(user_bias_reg),
-                "wd_item_bias={}".format(item_bias_reg),
-                "num_round=1",
-                "train_repeat={:d}".format(epochs)]
+        args = [
+            "svd_feature",
+            # "active_type=3",
+            "input_type=1",
+            "data_in={}".format(self.temp_file_folder + self.FILE_MODEL_NAME),
+            "model_out_folder={}".format(self.temp_file_folder),
+            "num_item={:d}".format(self.n_item_features),
+            "num_user={:d}".format(self.n_user_features),
+            "num_global=0",
+            "num_factor={:d}".format(num_factors),
+            "base_score={:.2f}".format(self.URM_train.data.mean()),
+            "learning_rate={}".format(learning_rate),
+            "wd_user={}".format(user_reg),
+            "wd_item={}".format(item_reg),
+            "wd_user_bias={}".format(user_bias_reg),
+            "wd_item_bias={}".format(item_bias_reg),
+            "num_round=1",
+            "train_repeat={:d}".format(epochs),
+        ]
 
         subprocess.run(args)

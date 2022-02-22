@@ -6,12 +6,15 @@ Created on 14/09/17
 @author: Maurizio Ferrari Dacrema
 """
 
+import shutil
+import zipfile
+
 import pandas as pd
-import zipfile, shutil
+
 from Data_manager.DataReader import DataReader
 from Data_manager.DataReader_utils import download_from_URL
 from Data_manager.DatasetMapperManager import DatasetMapperManager
-from Data_manager.Movielens._utils_movielens_parser import _loadURM, _loadICM_genres_years
+from Data_manager.Movielens._utils_movielens_parser import _loadICM_genres_years, _loadURM
 
 
 class Movielens1MReader(DataReader):
@@ -27,10 +30,9 @@ class Movielens1MReader(DataReader):
     def _get_dataset_name_root(self):
         return self.DATASET_SUBFOLDER
 
-
     def _load_from_original_file(self):
         # Load data from original
-        zipFile_path =  self.DATASET_SPLIT_ROOT_FOLDER + self.DATASET_SUBFOLDER
+        zipFile_path = self.DATASET_SPLIT_ROOT_FOLDER + self.DATASET_SUBFOLDER
 
         try:
 
@@ -44,28 +46,40 @@ class Movielens1MReader(DataReader):
 
             dataFile = zipfile.ZipFile(zipFile_path + "ml-1m.zip")
 
-
         ICM_genre_path = dataFile.extract("ml-1m/movies.dat", path=zipFile_path + "decompressed/")
         UCM_path = dataFile.extract("ml-1m/users.dat", path=zipFile_path + "decompressed/")
         URM_path = dataFile.extract("ml-1m/ratings.dat", path=zipFile_path + "decompressed/")
 
         self._print("Loading Interactions")
-        URM_all_dataframe, URM_timestamp_dataframe = _loadURM(URM_path, header=None, separator='::')
+        URM_all_dataframe, URM_timestamp_dataframe = _loadURM(URM_path, header=None, separator="::")
 
         self._print("Loading Item Features genres")
-        ICM_genres_dataframe, ICM_years_dataframe = _loadICM_genres_years(ICM_genre_path, header=None, separator='::', genresSeparator="|")
+        ICM_genres_dataframe, ICM_years_dataframe = _loadICM_genres_years(
+            ICM_genre_path, header=None, separator="::", genresSeparator="|"
+        )
 
         self._print("Loading User Features")
-        UCM_dataframe = pd.read_csv(filepath_or_buffer=UCM_path, sep="::", header=None, dtype={0:str, 1:str, 2:str, 3:str, 4:str}, engine='python')
+        UCM_dataframe = pd.read_csv(
+            filepath_or_buffer=UCM_path,
+            sep="::",
+            header=None,
+            dtype={0: str, 1: str, 2: str, 3: str, 4: str},
+            engine="python",
+        )
         UCM_dataframe.columns = ["UserID", "gender", "age_group", "occupation", "zip_code"]
 
         # For each user a list of features
-        UCM_list = [[feature_name + "_" + str(UCM_dataframe[feature_name][index]) for feature_name in ["gender", "age_group", "occupation", "zip_code"]] for index in range(len(UCM_dataframe))]
+        UCM_list = [
+            [
+                feature_name + "_" + str(UCM_dataframe[feature_name][index])
+                for feature_name in ["gender", "age_group", "occupation", "zip_code"]
+            ]
+            for index in range(len(UCM_dataframe))
+        ]
         UCM_dataframe = pd.DataFrame(UCM_list, index=UCM_dataframe["UserID"]).stack()
-        UCM_dataframe = UCM_dataframe.reset_index()[[0, 'UserID']]
-        UCM_dataframe.columns = ['FeatureID', 'UserID']
+        UCM_dataframe = UCM_dataframe.reset_index()[[0, "UserID"]]
+        UCM_dataframe.columns = ["FeatureID", "UserID"]
         UCM_dataframe["Data"] = 1
-
 
         dataset_manager = DatasetMapperManager()
         dataset_manager.add_URM(URM_all_dataframe, "URM_all")
@@ -74,8 +88,9 @@ class Movielens1MReader(DataReader):
         dataset_manager.add_ICM(ICM_years_dataframe, "ICM_year")
         dataset_manager.add_UCM(UCM_dataframe, "UCM_all")
 
-        loaded_dataset = dataset_manager.generate_Dataset(dataset_name=self._get_dataset_name(),
-                                                          is_implicit=self.IS_IMPLICIT)
+        loaded_dataset = dataset_manager.generate_Dataset(
+            dataset_name=self._get_dataset_name(), is_implicit=self.IS_IMPLICIT
+        )
 
         self._print("Cleaning Temporary Files")
 
@@ -84,4 +99,3 @@ class Movielens1MReader(DataReader):
         self._print("Loading Complete")
 
         return loaded_dataset
-
